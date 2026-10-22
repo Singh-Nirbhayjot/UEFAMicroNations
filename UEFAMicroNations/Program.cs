@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,142 +9,60 @@ namespace UEFAMicroNations
 {
     internal class Program
     {
+        static CRepositoryPartite repository = new CRepositoryPartite();
+
         static void Main(string[] args)
         {
-            CGestionePartite gestione = new CGestionePartite();
+            try
+            {
+                repository.Carica();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Errore nel caricamento: " + e.Message);
+            }
+
             int scelta;
 
             do
             {
-                Console.WriteLine("\nUEFA MicroNations Championship");
-                Console.WriteLine("1. Inserisci partita dei gironi");
-                Console.WriteLine("2. Inserisci partita a eliminazione");
-                Console.WriteLine("3. Visualizza tutte le partite");
-                Console.WriteLine("4. Visualizza classifica");
-                Console.WriteLine("5. Ordina le partite");
-                Console.WriteLine("6. Cerca partite di una squadra");
-                Console.WriteLine("7. Elimina una partita");
-                Console.WriteLine("0. Esci");
-                Console.Write("Scelta: ");
-
-                if (!int.TryParse(Console.ReadLine(), out scelta))
-                    scelta = -1;
+                do
+                {
+                    MostraMenu();
+                }
+                while (!int.TryParse(Console.ReadLine(), out scelta) ||
+                       scelta < 0 || scelta > 6);
 
                 try
                 {
                     switch (scelta)
                     {
                         case 1:
-                            InserisciPartitaGirone(gestione);
+                            VisualizzaNaturale();
                             break;
 
                         case 2:
-                            InserisciPartitaEliminazione(gestione);
+                            VisualizzaConCriterio();
                             break;
 
                         case 3:
-                            List<CPartita> partite = gestione.VisualizzaPartite();
-
-                            if (partite.Count == 0)
-                            {
-                                Console.WriteLine("Non ci sono partite.");
-                            }
-                            else
-                            {
-                                foreach (CPartita partita in partite)
-                                    Console.WriteLine(partita.Descrizione());
-                            }
+                            InserisciPartita();
                             break;
 
                         case 4:
-                            List<CStatisticheSquadra> classifica =
-                                gestione.CalcolaClassifica();
-
-                            if (classifica.Count == 0)
-                            {
-                                Console.WriteLine("Non ci sono partite dei gironi.");
-                            }
-                            else
-                            {
-                                Console.WriteLine("\nCLASSIFICA DEI GIRONI");
-
-                                for (int i = 0; i < classifica.Count; i++)
-                                {
-                                    Console.WriteLine(
-                                        (i + 1) + ". " + classifica[i]);
-                                }
-                            }
+                            MostraClassifica();
                             break;
 
                         case 5:
-                            gestione.OrdinaPartite();
-                            Console.WriteLine("Partite ordinate per giornata.");
+                            CercaSquadra();
                             break;
 
                         case 6:
-                            Console.Write("Nome della squadra: ");
-                            string nome = Console.ReadLine();
-
-                            if (string.IsNullOrWhiteSpace(nome))
-                            {
-                                Console.WriteLine("Nome non valido.");
-                                break;
-                            }
-
-                            List<CPartita> trovate =
-                                gestione.CercaSquadra(nome);
-
-                            if (trovate.Count == 0)
-                            {
-                                Console.WriteLine("Nessuna partita trovata.");
-                            }
-                            else
-                            {
-                                foreach (CPartita partita in trovate)
-                                    Console.WriteLine(partita.Descrizione());
-                            }
-                            break;
-
-                        case 7:
-                            Console.Write("Giornata: ");
-                            int giornata = LeggiInteroPositivo();
-
-                            Console.Write("Squadra di casa: ");
-                            string casa = Console.ReadLine();
-
-                            Console.Write("Squadra ospite: ");
-                            string ospite = Console.ReadLine();
-
-                            if (string.IsNullOrWhiteSpace(casa) ||
-                                string.IsNullOrWhiteSpace(ospite))
-                            {
-                                Console.WriteLine("Nome non valido.");
-                                break;
-                            }
-
-                            CPartita daEliminare =
-                                gestione.CercaPartita(giornata, casa, ospite);
-
-                            if (daEliminare == null)
-                            {
-                                Console.WriteLine("Partita non trovata.");
-                            }
-                            else if (gestione.EliminaPartita(daEliminare))
-                            {
-                                Console.WriteLine("Partita eliminata.");
-                            }
-                            else
-                            {
-                                Console.WriteLine("Impossibile eliminare la partita.");
-                            }
+                            EliminaPartita();
                             break;
 
                         case 0:
                             Console.WriteLine("Uscita dal programma.");
-                            break;
-
-                        default:
-                            Console.WriteLine("Scelta non valida.");
                             break;
                     }
                 }
@@ -155,128 +74,307 @@ namespace UEFAMicroNations
             } while (scelta != 0);
         }
 
-        static void InserisciPartitaGirone(CGestionePartite gestione)
+        static void MostraMenu()
         {
-            Console.WriteLine("\nInserimento partita dei gironi");
-
-            Console.Write("Giornata: ");
-            int giornata = LeggiInteroPositivo();
-
-            Console.Write("Squadra di casa: ");
-            string nomeCasa = Console.ReadLine();
-
-            Console.Write("Squadra ospite: ");
-            string nomeOspite = Console.ReadLine();
-
-            if (string.IsNullOrWhiteSpace(nomeCasa) ||
-                string.IsNullOrWhiteSpace(nomeOspite))
-            {
-                Console.WriteLine("Nome non valido.");
-                return;
-            }
-
-            CSquadra casa = new CSquadra(nomeCasa);
-            CSquadra ospite = new CSquadra(nomeOspite);
-
-            Console.Write("Gol casa: ");
-            int golCasa = LeggiInteroNonNegativo();
-
-            Console.Write("Gol ospite: ");
-            int golOspite = LeggiInteroNonNegativo();
-
-            CPartitaGirone partita = new CPartitaGirone(
-                giornata, casa, ospite, golCasa, golOspite);
-
-            if (gestione.AggiungiPartita(partita))
-                Console.WriteLine("Partita inserita.");
-            else
-                Console.WriteLine("La partita è già presente.");
+            Console.WriteLine("\n=== UEFA MicroNations Championship ===");
+            Console.WriteLine("1. Visualizza partite (ordine naturale)");
+            Console.WriteLine("2. Visualizza partite (altro criterio)");
+            Console.WriteLine("3. Inserisci partita");
+            Console.WriteLine("4. Classifica gironi");
+            Console.WriteLine("5. Cerca partite di una squadra");
+            Console.WriteLine("6. Elimina partita");
+            Console.WriteLine("0. Esci");
+            Console.Write("Scelta: ");
         }
 
-        static void InserisciPartitaEliminazione(CGestionePartite gestione)
+        static void VisualizzaNaturale()
         {
-            Console.WriteLine("\nInserimento partita a eliminazione");
+            CPartita.Criterio = "naturale";
+
+            List<CPartita> lista = new List<CPartita>(repository.GetElenco());
+
+            lista.Sort();
+            StampaLista(lista);
+        }
+
+        static void VisualizzaConCriterio()
+        {
+            Console.WriteLine("Criteri: naturale, gol, scarto, casaAZ, casaZA, data");
+            Console.Write("Scegli criterio: ");
+
+            string criterio = Console.ReadLine() ?? "";
+
+            if (criterio != "naturale" && criterio != "gol" && criterio != "scarto" && criterio != "casaAZ" && criterio != "casaZA" && criterio != "data")
+            {
+                Console.WriteLine("Criterio non valido.");
+                return;
+            }
+
+            CPartita.Criterio = criterio;
+
+            List<CPartita> lista = new List<CPartita>(repository.GetElenco());
+
+            lista.Sort();
+            StampaLista(lista);
+        }
+
+        static void StampaLista(List<CPartita> lista)
+        {
+            if (lista.Count == 0)
+            {
+                Console.WriteLine("Nessuna partita presente.");
+                return;
+            }
+
+            foreach (CPartita partita in lista)
+            {
+                Console.WriteLine(partita.Descrizione());
+            }
+        }
+
+        static void InserisciPartita()
+        {
+            Console.Write("Tipo di partita (girone, eliminazione, finale): ");
+
+            string tipo = (Console.ReadLine() ?? "").ToLower();
+
+            if (tipo != "girone" && tipo != "eliminazione" && tipo != "finale")
+            {
+                Console.WriteLine("Tipo non valido.");
+                return;
+            }
 
             Console.Write("Giornata: ");
             int giornata = LeggiInteroPositivo();
 
             Console.Write("Squadra di casa: ");
-            string nomeCasa = Console.ReadLine();
+            string squadraCasa = Console.ReadLine() ?? "";
 
             Console.Write("Squadra ospite: ");
-            string nomeOspite = Console.ReadLine();
+            string squadraOspite = Console.ReadLine() ?? "";
 
-            if (string.IsNullOrWhiteSpace(nomeCasa) ||
-                string.IsNullOrWhiteSpace(nomeOspite))
+            if (string.IsNullOrWhiteSpace(squadraCasa) ||
+                string.IsNullOrWhiteSpace(squadraOspite))
             {
-                Console.WriteLine("Nome non valido.");
+                Console.WriteLine("Nome della squadra non valido.");
                 return;
             }
 
-            CSquadra casa = new CSquadra(nomeCasa);
-            CSquadra ospite = new CSquadra(nomeOspite);
-
-            Console.Write("Gol casa: ");
-            int golCasa = LeggiInteroNonNegativo();
-
-            Console.Write("Gol ospite: ");
-            int golOspite = LeggiInteroNonNegativo();
-
-            int? rigoriCasa = null;
-            int? rigoriOspite = null;
-
-            if (golCasa == golOspite)
+            if (squadraCasa.ToLower() == squadraOspite.ToLower())
             {
-                Console.Write("Rigori casa: ");
-                rigoriCasa = LeggiInteroNonNegativo();
+                Console.WriteLine("Le squadre devono essere diverse.");
+                return;
+            }
 
-                Console.Write("Rigori ospite: ");
-                rigoriOspite = LeggiInteroNonNegativo();
+            Console.Write("Data (dd/MM/yyyy): ");
+            string testoData = Console.ReadLine() ?? "";
+            DateTime? data = null;
 
-                while (rigoriCasa == rigoriOspite)
+            if (!string.IsNullOrWhiteSpace(testoData))
+            {
+                DateTime dataLetta;
+
+                if (DateTime.TryParse(testoData, out dataLetta))
                 {
-                    Console.WriteLine(
-                        "I rigori devono avere un vincitore.");
-
-                    Console.Write("Rigori casa: ");
-                    rigoriCasa = LeggiInteroNonNegativo();
-
-                    Console.Write("Rigori ospite: ");
-                    rigoriOspite = LeggiInteroNonNegativo();
+                    data = dataLetta;
+                }
+                else
+                {
+                    Console.WriteLine("Data non valida.");
                 }
             }
 
-            CPartitaEliminazione partita = new CPartitaEliminazione(
-                giornata, casa, ospite, golCasa, golOspite,
-                rigoriCasa, rigoriOspite);
+            Console.Write("Gol casa: ");
+            int golCasa = LeggiInteroNonNegativo();
 
-            if (gestione.AggiungiPartita(partita))
-                Console.WriteLine("Partita inserita.");
-            else
-                Console.WriteLine("La partita è già presente.");
-        }
+            Console.Write("Gol ospite: ");
+            int golOspite = LeggiInteroNonNegativo();
 
-        static int LeggiInteroNonNegativo()
-        {
-            int valore;
+            CPartita nuova;
 
-            while (!int.TryParse(Console.ReadLine(), out valore) ||
-                   valore < 0)
+            if (tipo == "girone")
             {
-                Console.Write("Inserisci un intero non negativo: ");
+                nuova = new CPartitaGirone(giornata, squadraCasa, squadraOspite, golCasa, golOspite, data);
+            }
+            else
+            {
+                int? rigoriCasa = null;
+                int? rigoriOspite = null;
+
+                if (golCasa == golOspite)
+                {
+                    Console.WriteLine("Pareggio. Si va ai rigori");
+
+                    do
+                    {
+                        Console.Write("Rigori casa: ");
+                        rigoriCasa = LeggiInteroNonNegativo();
+
+                        Console.Write("Rigori ospite: ");
+                        rigoriOspite = LeggiInteroNonNegativo();
+
+                        if (rigoriCasa == rigoriOspite)
+                            Console.WriteLine("I rigori devono avere un vincitore.");
+                    }
+                    while (rigoriCasa == rigoriOspite);
+                }
+
+                if (tipo == "finale")
+                {
+                    nuova = new CPartitaFinale(giornata, squadraCasa, squadraOspite,golCasa, golOspite, rigoriCasa, rigoriOspite, data);
+                }
+                else
+                {
+                    nuova = new CPartitaEliminazione(giornata, squadraCasa, squadraOspite,golCasa, golOspite, rigoriCasa, rigoriOspite, data);
+                }
             }
 
-            return valore;
+            if (repository.Aggiungi(nuova))
+            {
+                repository.Salva();
+                Console.WriteLine("Partita inserita e salvata.");
+            }
+            else
+            {
+                Console.WriteLine("Partita già presente");
+            }
+        }
+
+        static void MostraClassifica()
+        {
+            List<CStatisticheSquadra> classifica = new List<CStatisticheSquadra>();
+
+            foreach (CPartita partita in repository.GetElenco())
+            {
+                if (partita is CPartitaGirone girone)
+                {
+                    AggiornaStatistica(classifica, girone.SquadraCasa, girone, true);
+                    AggiornaStatistica(classifica, girone.SquadraOspite, girone, false);
+                }
+            }
+
+            if (classifica.Count == 0)
+            {
+                Console.WriteLine("Non ci sono partite dei gironi.");
+                return;
+            }
+
+            classifica.Sort();
+
+            Console.WriteLine("\n--- CLASSIFICA GIRONI ---");
+
+            int posizione = 1;
+
+            foreach (CStatisticheSquadra squadra in classifica)
+            {
+                Console.WriteLine(posizione + ") " + squadra.ToString());
+                posizione++;
+            }
+        }
+
+        static void AggiornaStatistica(List<CStatisticheSquadra> classifica,
+            string squadra, CPartitaGirone partita, bool inCasa)
+        {
+            CStatisticheSquadra? statistica = null;
+
+            foreach (CStatisticheSquadra elemento in classifica)
+            {
+                if (elemento.Squadra.ToLower() == squadra.ToLower())
+                {
+                    statistica = elemento;
+                    break;
+                }
+            }
+
+            if (statistica == null)
+            {
+                statistica = new CStatisticheSquadra(squadra);
+                classifica.Add(statistica);
+            }
+
+            statistica.AggiungiPartita(partita, inCasa);
+        }
+
+        static void CercaSquadra()
+        {
+            Console.Write("Nome squadra: ");
+            string squadra = Console.ReadLine() ?? "";
+
+            if (string.IsNullOrWhiteSpace(squadra))
+            {
+                Console.WriteLine("Nome non valido.");
+                return;
+            }
+
+            List<CPartita> trovate = new List<CPartita>();
+
+            foreach (CPartita partita in repository.GetElenco())
+            {
+                if (partita.SquadraCasa.ToLower() == squadra.ToLower() ||
+                    partita.SquadraOspite.ToLower() == squadra.ToLower())
+                {
+                    trovate.Add(partita);
+                }
+            }
+
+            StampaLista(trovate);
+        }
+
+        static void EliminaPartita()
+        {
+            Console.Write("Giornata: ");
+            int giornata = LeggiInteroPositivo();
+
+            Console.Write("Squadra di casa: ");
+            string squadraCasa = Console.ReadLine() ?? "";
+
+            Console.Write("Squadra ospite: ");
+            string squadraOspite = Console.ReadLine() ?? "";
+
+            if (string.IsNullOrWhiteSpace(squadraCasa) ||
+                string.IsNullOrWhiteSpace(squadraOspite))
+            {
+                Console.WriteLine("Nome della squadra non valido.");
+                return;
+            }
+
+            if (squadraCasa.ToLower() == squadraOspite.ToLower())
+            {
+                Console.WriteLine("Le squadre devono essere diverse.");
+                return;
+            }
+
+            CPartita partitaDaEliminare = new CPartitaGirone(giornata, squadraCasa, squadraOspite, 0, 0);
+
+            if (repository.Rimuovi(partitaDaEliminare))
+            {
+                repository.Salva();
+                Console.WriteLine("Partita eliminata e archivio salvato.");
+            }
+            else
+            {
+                Console.WriteLine("Partita non trovata.");
+            }
         }
 
         static int LeggiInteroPositivo()
         {
             int valore;
 
-            while (!int.TryParse(Console.ReadLine(), out valore) ||
-                   valore <= 0)
+            while (!int.TryParse(Console.ReadLine(), out valore) || valore <= 0)
             {
                 Console.Write("Inserisci un intero positivo: ");
+            }
+
+            return valore;
+        }
+        static int LeggiInteroNonNegativo()
+        {
+            int valore;
+
+            while (!int.TryParse(Console.ReadLine(), out valore) || valore < 0)
+            {
+                Console.Write("Inserisci un intero non negativo: ");
             }
 
             return valore;

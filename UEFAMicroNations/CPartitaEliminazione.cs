@@ -8,26 +8,15 @@ namespace UEFAMicroNations
 {
     public class CPartitaEliminazione : CPartita
     {
-        private int? rigoriCasa; //int? significa che può essere intero o null
-        private int? rigoriOspite; //possono essere null perchè non è detto che la partita arriva a rig
-
-        public override string Fase
-        {
-            get { return "Eliminazione"; }
-        }
+        private int? rigoriCasa;
+        private int? rigoriOspite;
 
         public int? RigoriCasa
         {
             get { return rigoriCasa; }
             set
             {
-                if (GolCasa == GolOspite && value == null)
-                    throw new ArgumentException("In caso di pareggio devi inserire i rigori.");
-
-                if (GolCasa != GolOspite && value != null)
-                    throw new ArgumentException("I rigori servono solo in caso di pareggio.");
-
-                if (value != null && value < 0)
+                if (value < 0)
                     throw new ArgumentException("I rigori non possono essere negativi.");
 
                 rigoriCasa = value;
@@ -39,25 +28,24 @@ namespace UEFAMicroNations
             get { return rigoriOspite; }
             set
             {
-                if (GolCasa == GolOspite && value == null)
-                    throw new ArgumentException("In caso di pareggio devi inserire i rigori.");
-
-                if (GolCasa != GolOspite && value != null)
-                    throw new ArgumentException("I rigori servono solo in caso di pareggio.");
-
-                if (value != null && value < 0)
+                if (value < 0)
                     throw new ArgumentException("I rigori non possono essere negativi.");
 
                 rigoriOspite = value;
             }
         }
 
-        public CPartitaEliminazione(int giornata, CSquadra squadraCasa,CSquadra squadraOspite, int golCasa, int golOspite,int? rigoriCasa, int? rigoriOspite): base(giornata, squadraCasa, squadraOspite, golCasa, golOspite)
+        public override string Fase
+        {
+            get { return "Eliminazione"; }
+        }
+
+        public CPartitaEliminazione(int giornata, string squadraCasa,string squadraOspite, int golCasa, int golOspite,int? rigoriCasa = null, int? rigoriOspite = null,DateTime? data = null): base(giornata, squadraCasa, squadraOspite, golCasa, golOspite, data)
         {
             if (golCasa == golOspite)
             {
                 if (rigoriCasa == null || rigoriOspite == null)
-                    throw new ArgumentException("Devi inserire entrambi i rigori.");
+                    throw new ArgumentException("In caso di pareggio i rigori sono obbligatori.");
 
                 if (rigoriCasa == rigoriOspite)
                     throw new ArgumentException("I rigori non possono finire in pareggio.");
@@ -72,7 +60,7 @@ namespace UEFAMicroNations
             RigoriOspite = rigoriOspite;
         }
 
-        public override CSquadra Vincitore()
+        public override string? CalcolaVincitore()
         {
             if (GolCasa > GolOspite)
                 return SquadraCasa;
@@ -86,14 +74,29 @@ namespace UEFAMicroNations
             return SquadraOspite;
         }
 
+        public override int PuntiPer(string squadra)
+        {
+            return 0;
+        }
+
         public override string Descrizione()
         {
-            string risultato = base.Descrizione();
+            string risultato = "G" + Giornata + " - " + SquadraCasa + " " +
+                GolCasa + "-" + GolOspite + " " + SquadraOspite;
 
-            if (RigoriCasa != null && RigoriOspite != null)
-                risultato += " (rigori " + RigoriCasa + "-" + RigoriOspite + ")";
+            if (Data != null)
+                risultato += " [" + Data.Value.ToString("dd/MM/yyyy") + "]";
 
-            return risultato;
+            if (GolCasa == GolOspite)
+            {
+                risultato += " d.c.r. " + RigoriCasa + "-" + RigoriOspite +", passa " + CalcolaVincitore();
+            }
+            else
+            {
+                risultato += ", passa " + CalcolaVincitore();
+            }
+
+            return risultato + " (" + Fase + ")";
         }
     }
 }

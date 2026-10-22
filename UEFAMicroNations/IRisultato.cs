@@ -6,9 +6,17 @@ using System.Threading.Tasks;
 
 namespace UEFAMicroNations
 {
+    public enum Esito
+    {
+        VittoriaCasa,
+        Pareggio,
+        VittoriaOspite
+    }
     public interface IRisultato
     {
-        CSquadra Vincitore();
-        int PuntiPer(CSquadra squadra);
+        int CalcolaGolTotali();
+        int CalcolaScarto();
+        Esito CalcolaEsito();
+        string? CalcolaVincitore();
     }
 }

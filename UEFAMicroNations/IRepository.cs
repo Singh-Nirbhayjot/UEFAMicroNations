@@ -8,9 +8,10 @@ namespace UEFAMicroNations
 {
     public interface IRepository<T>
     {
-        void Aggiungi(T elemento);
-        List<T> LeggiTutti();
-        void Salva();
+        IReadOnlyList<T> GetElenco();
+        bool Aggiungi(T elemento);
+        bool Rimuovi(T elemento);
         void Carica();
+        void Salva();
     }
 }

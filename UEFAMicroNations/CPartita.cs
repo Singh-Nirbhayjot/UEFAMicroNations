@@ -1,22 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace UEFAMicroNations
 {
-    public abstract class CPartita : IRisultato, IStampabile, IEquatable<CPartita>, IComparable<CPartita>
+    public abstract class CPartita : IRisultato, IStampabile,IComparable<CPartita>, IEquatable<CPartita>
     {
+        public static string Criterio = "naturale";
+
         private int giornata;
-        private CSquadra squadraCasa;
-        private CSquadra squadraOspite;
+        private string squadraCasa = "";
+        private string squadraOspite = "";
         private int golCasa;
         private int golOspite;
 
         public int Giornata
         {
-            get => giornata;
+            get { return giornata; }
             set
             {
                 if (value <= 0)
@@ -26,32 +29,25 @@ namespace UEFAMicroNations
             }
         }
 
-        public CSquadra SquadraCasa
+        public string SquadraCasa
         {
-            get => squadraCasa; 
+            get { return squadraCasa; }
             set
             {
-                if (value == null)
-                    throw new ArgumentException("La squadra di casa è obbligatoria.");
-
-                if (squadraOspite != null && value.Nome.ToUpper() == squadraOspite.Nome.ToUpper())
-                    throw new ArgumentException("Le squadre devono essere diverse.");
+                if (string.IsNullOrWhiteSpace(value))
+                    throw new ArgumentException("La squadra di casa non è valida.");
 
                 squadraCasa = value;
             }
         }
 
-        public CSquadra SquadraOspite
+        public string SquadraOspite
         {
-            get => squadraOspite;
+            get { return squadraOspite; }
             set
             {
-                if (value == null)
-                    throw new ArgumentException("La squadra ospite è obbligatoria.");
-
-                if (squadraCasa != null &&
-                    value.Nome.ToUpper() == squadraCasa.Nome.ToUpper())
-                    throw new ArgumentException("Le squadre devono essere diverse.");
+                if (string.IsNullOrWhiteSpace(value))
+                    throw new ArgumentException("La squadra ospite non è valida.");
 
                 squadraOspite = value;
             }
@@ -59,7 +55,7 @@ namespace UEFAMicroNations
 
         public int GolCasa
         {
-            get => golCasa;
+            get { return golCasa; }
             set
             {
                 if (value < 0)
@@ -71,7 +67,7 @@ namespace UEFAMicroNations
 
         public int GolOspite
         {
-            get => golOspite;
+            get { return golOspite; }
             set
             {
                 if (value < 0)
@@ -81,18 +77,45 @@ namespace UEFAMicroNations
             }
         }
 
+        public DateTime? Data { get; set; }
+
         public abstract string Fase { get; }
 
-        protected CPartita(int giornata, CSquadra squadraCasa,CSquadra squadraOspite, int golCasa, int golOspite)
+        public CPartita(int giornata, string squadraCasa, string squadraOspite,int golCasa, int golOspite, DateTime? data = null)
         {
+            if (squadraCasa.ToLower() == squadraOspite.ToLower())
+                throw new ArgumentException("Le squadre devono essere diverse.");
+
             Giornata = giornata;
             SquadraCasa = squadraCasa;
             SquadraOspite = squadraOspite;
             GolCasa = golCasa;
             GolOspite = golOspite;
+            Data = data;
         }
 
-        public virtual CSquadra Vincitore()
+        public int CalcolaGolTotali()
+        {
+            return GolCasa + GolOspite;
+        }
+
+        public int CalcolaScarto()
+        {
+            return Math.Abs(GolCasa - GolOspite);
+        }
+
+        public Esito CalcolaEsito()
+        {
+            if (GolCasa > GolOspite)
+                return Esito.VittoriaCasa;
+
+            if (GolCasa < GolOspite)
+                return Esito.VittoriaOspite;
+
+            return Esito.Pareggio;
+        }
+
+        public virtual string? CalcolaVincitore()
         {
             if (GolCasa > GolOspite)
                 return SquadraCasa;
@@ -103,87 +126,104 @@ namespace UEFAMicroNations
             return null;
         }
 
-        public int PuntiPer(CSquadra squadra)
-        {
-            if (squadra == null)
-                return 0;
-
-            if (squadra.Nome.ToUpper() == SquadraCasa.Nome.ToUpper())
-            {
-                if (GolCasa > GolOspite)
-                    return 3;
-
-                if (GolCasa == GolOspite)
-                    return 1;
-
-                return 0;
-            }
-
-            if (squadra.Nome.ToUpper() == SquadraOspite.Nome.ToUpper())
-            {
-                if (GolOspite > GolCasa)
-                    return 3;
-
-                if (GolOspite == GolCasa)
-                    return 1;
-
-                return 0;
-            }
-
-            return 0;
-        }
+        public abstract int PuntiPer(string squadra);
 
         public virtual string Descrizione()
         {
-            return $"Giornata {Giornata} - {Fase}: {SquadraCasa.Nome} {GolCasa} - {GolOspite} {SquadraOspite.Nome}";
+            string risultato = "G" + Giornata + " - " + SquadraCasa + " " +GolCasa + "-" + GolOspite + " " + SquadraOspite;
+
+            if (Data != null)
+                risultato += " [" + Data.Value.ToString("dd/MM/yyyy") + "]";
+
+            return risultato + " (" + Fase + ")";
         }
 
-        public override string ToString()
+        public bool Equals(CPartita? altra)
         {
-            return Descrizione();
-        }
-
-        public bool Equals(CPartita altra)
-        {
-            if ((object)altra == null)//faccio cast per far diventare un tipo generico e per non chiamare operatore ==
+            if ((object?)altra == null)
                 return false;
 
-            return Giornata == altra.Giornata &&SquadraCasa.Nome.ToUpper() == altra.SquadraCasa.Nome.ToUpper() &&SquadraOspite.Nome.ToUpper() == altra.SquadraOspite.Nome.ToUpper();
+            return Giornata == altra.Giornata && SquadraCasa.ToLower() == altra.SquadraCasa.ToLower() && SquadraOspite.ToLower() == altra.SquadraOspite.ToLower();
         }
 
-        public static bool operator ==(CPartita a, CPartita b)
+        public override bool Equals(object? obj)
         {
-            if ((object)a == null && (object)b == null)
-                return true;
+            CPartita? altra = obj as CPartita;
 
-            if ((object)a == null || (object)b == null)
+            if (altra == null)
                 return false;
 
-            return a.Equals(b);
+            return Equals(altra);
         }
 
-        public static bool operator !=(CPartita a, CPartita b)
+        public static bool operator ==(CPartita? prima, CPartita? seconda)
         {
-            return !(a == b);
+            if ((object?)prima == null)
+                return (object?)seconda == null;
+
+            return prima.Equals(seconda);
         }
 
-        public int CompareTo(CPartita altra)
+        public static bool operator !=(CPartita? prima, CPartita? seconda)
+        {
+            return !(prima == seconda);
+        }
+
+        public int CompareTo(CPartita? altra)
         {
             if (altra == null)
                 return 1;
 
-            if (Giornata < altra.Giornata)
-                return -1;
+            if (Criterio == "gol")
+            {
+                int confronto = altra.CalcolaGolTotali().CompareTo(CalcolaGolTotali());
 
-            if (Giornata > altra.Giornata)
-                return 1;
+                if (confronto != 0)
+                    return confronto;
+            }
+            else if (Criterio == "scarto")
+            {
+                int confronto = altra.CalcolaScarto().CompareTo(CalcolaScarto());
 
-            int confronto = SquadraCasa.Nome.CompareTo(altra.SquadraCasa.Nome);
+                if (confronto != 0)
+                    return confronto;
+            }
+            else if (Criterio == "casaAZ")
+            {
+                int confronto = SquadraCasa.ToLower().CompareTo(altra.SquadraCasa.ToLower());
 
-            if (confronto != 0)
-                return confronto;
+                if (confronto != 0)
+                    return confronto;
+            }
+            else if (Criterio == "casaZA")
+            {
+                int confronto = altra.SquadraCasa.ToLower().CompareTo(SquadraCasa.ToLower());
 
-            return SquadraOspite.Nome.CompareTo(altra.SquadraOspite.Nome);
+                if (confronto != 0)
+                    return confronto;
+            }
+            else if (Criterio == "data")
+            {
+                DateTime d1 = Data ?? DateTime.MaxValue;
+                DateTime d2 = altra.Data ?? DateTime.MaxValue;
+
+                int confronto = d1.CompareTo(d2);
+
+                if (confronto != 0)
+                    return confronto;
+            }
+
+            int confrontoGiornata = Giornata.CompareTo(altra.Giornata);
+
+            if (confrontoGiornata != 0)
+                return confrontoGiornata;
+
+            int confrontoCasa = SquadraCasa.ToLower().CompareTo(altra.SquadraCasa.ToLower());
+
+            if (confrontoCasa != 0)
+                return confrontoCasa;
+
+            return SquadraOspite.ToLower().CompareTo(altra.SquadraOspite.ToLower());
         }
     }
 }

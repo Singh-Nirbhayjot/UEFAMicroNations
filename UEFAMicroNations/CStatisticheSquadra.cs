@@ -8,99 +8,132 @@ namespace UEFAMicroNations
 {
     public class CStatisticheSquadra : IComparable<CStatisticheSquadra>, IEquatable<CStatisticheSquadra>
     {
-        public CSquadra Squadra { get; set; }
-        public int PartiteGiocate { get; set; }
-        public int Vittorie { get; set; }
-        public int Pareggi { get; set; }
-        public int Sconfitte { get; set; }
+        public string Squadra { get; set; }
+        public int Punti { get; set; }
+        public int Giocate { get; set; }
+        public int Vinte { get; set; }
+        public int Pareggiate { get; set; }
+        public int Perse { get; set; }
         public int GolFatti { get; set; }
         public int GolSubiti { get; set; }
 
-        public int Punti
+        public CStatisticheSquadra(string squadra)
         {
-            get { return Vittorie * 3 + Pareggi; }
-        }
+            if (string.IsNullOrWhiteSpace(squadra))
+                throw new ArgumentException("Il nome della squadra non è valido.");
 
-        public int DifferenzaReti
-        {
-            get { return GolFatti - GolSubiti; }
-        }
-
-        public CStatisticheSquadra(CSquadra squadra)
-        {
             Squadra = squadra;
-            PartiteGiocate = 0;
-            Vittorie = 0;
-            Pareggi = 0;
-            Sconfitte = 0;
+            Punti = 0;
+            Giocate = 0;
+            Vinte = 0;
+            Pareggiate = 0;
+            Perse = 0;
             GolFatti = 0;
             GolSubiti = 0;
         }
 
-        public void AggiungiPartita(CPartita partita)
+        public int CalcolaDifferenzaReti()
         {
-            if (partita == null || !(partita is CPartitaGirone))
-                return;
-            if (partita.SquadraCasa.Nome.ToUpper() == Squadra.Nome.ToUpper())
+            return GolFatti - GolSubiti;
+        }
+
+        public void AggiungiPartita(CPartitaGirone partita, bool inCasa)
+        {
+            Giocate++;
+
+            if (inCasa)
             {
-                PartiteGiocate++;
                 GolFatti += partita.GolCasa;
                 GolSubiti += partita.GolOspite;
             }
-            else if (partita.SquadraOspite.Nome.ToUpper() == Squadra.Nome.ToUpper())
+            else
             {
-                PartiteGiocate++;
                 GolFatti += partita.GolOspite;
                 GolSubiti += partita.GolCasa;
             }
+
+            Punti += partita.PuntiPer(Squadra);
+
+            Esito esito = partita.CalcolaEsito();
+
+            if (esito == Esito.Pareggio)
+            {
+                Pareggiate++;
+            }
+            else if ((esito == Esito.VittoriaCasa && inCasa) ||
+                     (esito == Esito.VittoriaOspite && !inCasa))
+            {
+                Vinte++;
+            }
             else
             {
-                return;
+                Perse++;
             }
-
-            if (partita.PuntiPer(Squadra) == 3)
-                Vittorie++;
-            else if (partita.PuntiPer(Squadra) == 1)
-                Pareggi++;
-            else
-                Sconfitte++;
         }
-        public int CompareTo(CStatisticheSquadra altra)
+
+        public int CompareTo(CStatisticheSquadra? altra)
         {
             if (altra == null)
-                return -1;
+                return 1;
 
-            if (Punti != altra.Punti)
-                return altra.Punti.CompareTo(Punti);
+            int confronto = altra.Punti.CompareTo(Punti);
 
-            if (DifferenzaReti != altra.DifferenzaReti)
-                return altra.DifferenzaReti.CompareTo(DifferenzaReti);
+            if (confronto != 0)
+                return confronto;
 
-            if (GolFatti != altra.GolFatti)
-                return altra.GolFatti.CompareTo(GolFatti);
+            confronto = altra.CalcolaDifferenzaReti().CompareTo(CalcolaDifferenzaReti());
 
-            return Squadra.Nome.CompareTo(altra.Squadra.Nome);
+            if (confronto != 0)
+                return confronto;
+
+            confronto = altra.GolFatti.CompareTo(GolFatti);
+
+            if (confronto != 0)
+                return confronto;
+
+            return Squadra.ToLower().CompareTo(altra.Squadra.ToLower());
         }
 
-        public bool Equals(CStatisticheSquadra altra)
+        public bool Equals(CStatisticheSquadra? altra)
         {
+            if ((object?)altra == null)
+                return false;
+
+            return Squadra.ToLower() == altra.Squadra.ToLower();
+        }
+
+        public override bool Equals(object? obj)
+        {
+            CStatisticheSquadra? altra = obj as CStatisticheSquadra;
+
             if (altra == null)
                 return false;
 
-            return Squadra.Nome.ToUpper() ==
-                   altra.Squadra.Nome.ToUpper();
+            return Equals(altra);
         }
+
+        public static bool operator ==(CStatisticheSquadra? prima,CStatisticheSquadra? seconda)
+        {
+            if ((object?)prima == null)
+                return (object?)seconda == null;
+
+            return prima.Equals(seconda);
+        }
+        public static bool operator !=(CStatisticheSquadra? prima,CStatisticheSquadra? seconda)
+        {
+            return !(prima == seconda);
+        }
+
         public override string ToString()
         {
-            return Squadra.Nome +
-                   " | PG: " + PartiteGiocate +
-                   " | V: " + Vittorie +
-                   " | P: " + Pareggi +
-                   " | S: " + Sconfitte +
-                   " | GF: " + GolFatti +
-                   " | GS: " + GolSubiti +
-                   " | DR: " + DifferenzaReti +
-                   " | Punti: " + Punti;
+            return Squadra + " | Pt: " + Punti +
+                " | G: " + Giocate +
+                " | V: " + Vinte +
+                " | N: " + Pareggiate +
+                " | P: " + Perse +
+                " | GF: " + GolFatti +
+                " | GS: " + GolSubiti +
+                " | DR: " + CalcolaDifferenzaReti();
         }
     }
 }
